@@ -5,7 +5,8 @@ import * as GameLoop from './game-loop.js';
 var allPoints = [];
 var lastTime = 0;
 var halted = false;
-var globalScale = 0.01;
+var globalScale = 1.0;
+var balance = 0.0;
 
 var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 svg.setAttribute("preserveAspectRatio", "xMinYMax slice");
@@ -45,6 +46,20 @@ document.body.appendChild(zoomInButton);
 var debugSpan = document.createElement("span");
 document.body.appendChild(debugSpan);
 
+var getFarX = function(points, scale) {
+  var fx = 0;
+  if (allPoints.length > 0) {
+    fx = allPoints[allPoints.length-1][0] * scale;
+  }
+
+  return fx;
+};
+
+var getOffX = function(points, graphSize, scale) {
+  var ox = graphSize[0] - getFarX(points, scale);
+  return ox;
+};
+
 var pointsToPath = function(points, scale, graphSize) {
   var d = ``;
 
@@ -52,23 +67,14 @@ var pointsToPath = function(points, scale, graphSize) {
 
   var lastPoint = null;
 
-  var fx = 0;
-  var ox = 0;
-  
-  if (allPoints.length > 0) {
-    fx = allPoints[allPoints.length-1][0] * scale;
-  }
-
-  ox = graphSize[0] - fx;
-
   for (var i=points.length-1; i>0; i-=1) {
     var point = points[i];
 
-    var cx = (point[0] * scale) + ox;
+    var cx = (point[0] * scale);
     var cy = (point[1] * scale) + (0.5 * graphSize[1]);
 
     if (lastPoint) {
-      var lx = (lastPoint[0] * scale) + ox;
+      var lx = (lastPoint[0] * scale);
       var ly = (lastPoint[1] * scale) + (0.5 * graphSize[1]);
 
       if (lx > 0 && cx > 0) {
@@ -91,13 +97,22 @@ var pointsToPath = function(points, scale, graphSize) {
 var addTestPoint = function(globalTime, frequency, amplitude) {
   var newPoint = [];
   newPoint[0] = globalTime;
+
   newPoint[1] = (Math.sin(globalTime * frequency) * amplitude);
+
+  //newPoint[1] = balance;
+  //balance += 1.0;
 
   allPoints.push(newPoint);
 };
 
-var plotWindow = function(scale, graphSize) {
-  path.setAttribute('d', pointsToPath(allPoints, scale, graphSize));
+var plotWindow = function(points, scale, graphSize) {
+  path.setAttribute('d', pointsToPath(points, scale, graphSize));
+  var ox = getOffX(points, graphSize, scale);
+  var rx = parseInt(ox * -1);
+  var lx = parseInt(rx - graphSize[0]); //parseInt(graphSize[0] - ox);
+  debugSpan.innerText = `${debugSpan.innerText} ${ox}`;
+  svg.setAttribute("viewBox", `${lx} 0 ${rx} 256`);
 };
 
 var plotTest = function(globalTime) {
@@ -112,7 +127,7 @@ var plotTest = function(globalTime) {
     addTestPoint(globalTime, (0.01), 100.0);
   }
 
-  plotWindow(globalScale, graphSize);
+  plotWindow(allPoints, globalScale, graphSize);
 
   lastTime = globalTime;
 
