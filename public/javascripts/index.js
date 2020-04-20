@@ -7,23 +7,28 @@ var lastTime = 0;
 var halted = false;
 var globalScale = 1.0;
 var balance = 0.0;
+var graphSize = [512, 256];
+
+var graphDatum = [0, 0];
 
 var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-//svg.setAttribute("preserveAspectRatio", "xMinYMax slice");
-//svg.setAttribute("preserveAspectRatio", "xMidYMid slice");
-//svg.setAttribute("preserveAspectRatio", "xMinYMin slice");
-//svg.setAttribute("preserveAspectRatio", "xMaxYMid slice");
-//svg.setAttribute("preserveAspectRatio", "xMaxYMid slice");
 svg.setAttribute("preserveAspectRatio", "none");
 svg.setAttribute("version", "1.1");
 svg.setAttribute("aria-hidden", "true");
 
-var path = document.createElementNS("http://www.w3.org/2000/svg", 'path');
-path.setAttribute('fill', "red");
-path.setAttribute('stroke', "blue");
-path.setAttribute('id', "arrow1");
 
-svg.appendChild(path);
+var pathGroup = document.createElementNS("http://www.w3.org/2000/svg", 'g');
+
+var path = document.createElementNS("http://www.w3.org/2000/svg", 'path');
+path.setAttribute('stroke', "blue");
+
+var basePath = document.createElementNS("http://www.w3.org/2000/svg", 'path');
+basePath.setAttribute('stroke', "black");
+
+pathGroup.appendChild(path);
+pathGroup.appendChild(basePath);
+
+svg.appendChild(pathGroup);
 
 document.body.appendChild(svg);
 
@@ -77,11 +82,11 @@ var pointsToPath = function(points, scale, graphSize) {
     var point = points[i];
 
     var cx = (point[0]);
-    var cy = (point[1]) + (0.5 * graphSize[1]);
+    var cy = (point[1]); // + (0.5 * graphSize[1]);
 
     if (lastPoint) {
       var lx = (lastPoint[0]);
-      var ly = (lastPoint[1]) + (0.5 * graphSize[1]);
+      var ly = (lastPoint[1]); // + (0.5 * graphSize[1]);
 
       if (cx > (fx - (graphSize[0] * scale))) {
         d += `M ${lx} ${ly} `;
@@ -95,7 +100,7 @@ var pointsToPath = function(points, scale, graphSize) {
 
   d += `z`;
 
-  debugSpan.innerText = pointCount;
+  //debugSpan.innerText = pointCount;
 
   return d;
 }
@@ -104,7 +109,8 @@ var addTestPoint = function(globalTime, frequency, amplitude) {
   var newPoint = [];
   newPoint[0] = globalTime;
 
-  newPoint[1] = (Math.sin(globalTime * frequency) * amplitude) + amplitude;
+  //newPoint[1] = (Math.sin(globalTime * frequency) * amplitude) + amplitude;
+  newPoint[1] = (Math.sin(globalTime * frequency) * amplitude);
 
   //newPoint[1] = balance;
   //balance += 1.0;
@@ -114,20 +120,32 @@ var addTestPoint = function(globalTime, frequency, amplitude) {
 
 var plotWindow = function(points, scale, graphSize) {
   path.setAttribute('d', pointsToPath(points, scale, graphSize));
+
+
   var ox = getOffX(points, graphSize, scale);
   var fx = getFarX(points, scale);
   var rx = parseInt(fx); //parseInt((ox * -1));
   var lx = parseInt(rx - (graphSize[0] * scale)); //parseInt(graphSize[0] - ox);
-  debugSpan.innerText = `${debugSpan.innerText} ox:${ox} scale:${scale} fx:${fx}`;
-  svg.setAttribute("viewBox", `${lx} ${(graphSize[1]) - (graphSize[1] * scale * 0.5)} ${graphSize[0] * scale} ${graphSize[1] * scale}`);
+  var sw = graphSize[0] * scale;
+
+  //debugSpan.innerText = `${debugSpan.innerText} 1xy ${allPoints[0]} ox:${ox} scale:${scale} fx:${fx}`;
+
+  basePath.setAttribute('d', `M ${lx} 0 L ${rx} 0 z`);
+
+  //svg.setAttribute("viewBox", `${lx} ${0 - graphSize[1] * 0.5} ${graphSize[0] * scale} ${graphSize[1] * scale}`);
+  svg.setAttribute("viewBox", `${lx} ${graphDatum[1] - (graphSize[1] * scale * 0.5)} ${sw} ${(graphSize[1] * scale)}`);
+
   path.setAttribute("stroke-width", scale);
+  basePath.setAttribute("stroke-width", scale);
 };
 
 var plotTest = function(globalTime) {
-  var graphSize = [512, 256];
 
   svg.setAttribute("width", graphSize[0]);
   svg.setAttribute("height", graphSize[1]);
+
+  //pathGroup.setAttribute("transform", `matrix(1 0 0 -1 0 ${graphSize[1]})`);
+  pathGroup.setAttribute("transform", `scale(1, -1)`);
 
   var frameTime = globalTime - lastTime;
 
